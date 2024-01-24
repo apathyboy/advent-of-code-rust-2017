@@ -16,11 +16,7 @@ fn is_passphrase_v2_valid(passphrase: &&str) -> bool {
             .map(|p| p.iter().collect::<String>())
             .collect::<Vec<_>>();
 
-        words
-            .iter()
-            .filter(|&word| anagrams.contains(&word))
-            .count()
-            == 1
+        words.iter().filter(|&word| anagrams.contains(word)).count() == 1
     })
 }
 
