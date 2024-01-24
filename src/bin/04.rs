@@ -1,43 +1,35 @@
 use itertools::Itertools;
+use rayon::prelude::*;
 
 advent_of_code::solution!(4);
 
 fn is_passphrase_v2_valid(passphrase: &&str) -> bool {
-    let words = passphrase.split_ascii_whitespace().collect::<Vec<_>>();
+    let words = passphrase
+        .split_ascii_whitespace()
+        .map(|word| word.to_string())
+        .collect::<Vec<String>>();
 
-    for word in words.iter() {
-        if words
+    words.par_iter().all(|word| {
+        let anagrams = word
+            .chars()
+            .permutations(word.len())
+            .map(|p| p.iter().collect::<String>())
+            .collect::<Vec<_>>();
+
+        words
             .iter()
-            .filter(|&w| {
-                let anagrams = w
-                    .chars()
-                    .permutations(w.len())
-                    .map(|w2| w2.iter().collect::<String>())
-                    .filter(|s| s == word)
-                    .collect::<Vec<_>>();
-
-                anagrams.contains(&word.to_string())
-            })
+            .filter(|&word| anagrams.contains(&word))
             .count()
-            != 1
-        {
-            return false;
-        }
-    }
-
-    true
+            == 1
+    })
 }
 
 fn is_passphrase_valid(passphrase: &&str) -> bool {
     let words = passphrase.split_ascii_whitespace().collect::<Vec<_>>();
 
-    for word in words.iter() {
-        if words.iter().filter(|&w| *w == *word).count() != 1 {
-            return false;
-        }
-    }
-
-    true
+    words
+        .iter()
+        .all(|word| words.iter().filter(|&w| *w == *word).count() == 1)
 }
 
 pub fn part_one(input: &str) -> Option<usize> {
