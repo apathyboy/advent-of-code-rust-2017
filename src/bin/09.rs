@@ -1,48 +1,31 @@
 advent_of_code::solution!(9);
 
+enum State {
+    Normal,
+    Garbage,
+    IgnoreNext,
+}
+
 fn score_stream(stream: &str) -> Option<(usize, usize)> {
-    let mut depth = 0;
-    let mut score = 0;
-    let mut in_garbage = false;
-    let mut garbage = 0;
-    let mut ignore = false;
-
-    for c in stream.chars() {
-        if ignore {
-            ignore = false;
-            continue;
-        }
-
-        if c == '!' {
-            ignore = true;
-            continue;
-        }
-
-        if c == '<' && !in_garbage {
-            in_garbage = true;
-            continue;
-        }
-
-        if c == '>' && in_garbage {
-            in_garbage = false;
-            continue;
-        }
-
-        if in_garbage {
-            garbage += 1;
-            continue;
-        }
-
-        if c == '}' {
-            depth -= 1;
-            continue;
-        }
-
-        if c == '{' {
-            depth += 1;
-            score += depth;
-        }
-    }
+    let (score, garbage, _, _) = stream.chars().fold(
+        (0, 0, 0, State::Normal),
+        |(score, garbage, mut depth, state), c| match (&state, c) {
+            (State::IgnoreNext, _) => (score, garbage, depth, State::Garbage),
+            (_, '!') => (score, garbage, depth, State::IgnoreNext),
+            (State::Garbage, '>') => (score, garbage, depth, State::Normal),
+            (State::Garbage, _) => (score, garbage + 1, depth, State::Garbage),
+            (_, '<') => (score, garbage, depth, State::Garbage),
+            (State::Normal, '{') => {
+                depth += 1;
+                (score + depth, garbage, depth, State::Normal)
+            }
+            (State::Normal, '}') => {
+                depth -= 1;
+                (score, garbage, depth, State::Normal)
+            }
+            _ => (score, garbage, depth, state),
+        },
+    );
 
     Some((score, garbage))
 }
