@@ -23,42 +23,21 @@ fn skip_and_reverse_wraparound(mut vec: Vec<usize>, n: usize, i: usize) -> Vec<u
     vec
 }
 
-fn hash(list_size: usize, lengths: &[usize]) -> usize {
-    let mut list = (0..list_size).collect::<Vec<_>>();
-    let mut current_pos = 0;
+fn twist(
+    lengths: &[usize],
+    mut list: Vec<usize>,
+    current_pos: &mut usize,
+    skip_length: &mut usize,
+) -> Vec<usize> {
+    for length in lengths {
+        list = skip_and_reverse_wraparound(list, *current_pos, *length);
 
-    for (skip_size, length) in lengths.iter().enumerate() {
-        list = skip_and_reverse_wraparound(list, current_pos, *length);
+        *current_pos += *length + *skip_length;
 
-        current_pos += *length + skip_size;
-    }
-
-    list[0] * list[1]
-}
-
-fn sparse_hash(list_size: usize, lengths: &[usize]) -> Vec<usize> {
-    let mut list = (0..list_size).collect::<Vec<_>>();
-    let mut current_pos = 0;
-    let mut skip_size = 0;
-
-    for _ in 0..64 {
-        for length in lengths {
-            list = skip_and_reverse_wraparound(list, current_pos, *length);
-
-            current_pos += *length + skip_size;
-
-            skip_size += 1;
-        }
+        *skip_length += 1;
     }
 
     list
-}
-
-fn dense_hash(sparse: &[usize]) -> Vec<usize> {
-    sparse
-        .chunks(16)
-        .map(|chunk| chunk.iter().fold(0, |acc, &x| acc ^ x))
-        .collect()
 }
 
 fn to_hex(input: &[usize]) -> String {
@@ -67,16 +46,24 @@ fn to_hex(input: &[usize]) -> String {
         .fold(String::new(), |acc, &i| acc + &format!("{:02x}", i))
 }
 
-fn knot_hash(input: &str) -> String {
-    let mut lengths: Vec<usize> = input.chars().map(|c| c as usize).collect();
-    let mut append = vec![17, 31, 73, 47, 23];
+fn knot_hash(input: &str) -> Vec<usize> {
+    let lengths: Vec<usize> = input
+        .chars()
+        .map(|c| c as usize)
+        .chain(vec![17, 31, 73, 47, 23])
+        .collect();
 
-    lengths.append(&mut append);
+    let mut list = (0..256).collect::<Vec<_>>();
+    let mut current_pos = 0;
+    let mut skip_length = 0;
 
-    let sparse_result = sparse_hash(256, &lengths);
-    let dense_result = dense_hash(&sparse_result);
+    for _ in 0..64 {
+        list = twist(&lengths, list, &mut current_pos, &mut skip_length);
+    }
 
-    to_hex(&dense_result)
+    list.chunks(16)
+        .map(|chunk| chunk.iter().fold(0, |acc, &x| acc ^ x))
+        .collect()
 }
 
 pub fn part_one(input: &str) -> Option<usize> {
@@ -86,11 +73,20 @@ pub fn part_one(input: &str) -> Option<usize> {
         .filter_map(|s| s.parse::<usize>().ok())
         .collect();
 
-    Some(hash(256, &lengths))
+    let mut current_pos = 0;
+    let mut skip_length = 0;
+    let result = twist(
+        &lengths,
+        (0..256).collect::<Vec<_>>(),
+        &mut current_pos,
+        &mut skip_length,
+    );
+
+    Some(result[0] * result[1])
 }
 
 pub fn part_two(input: &str) -> Option<String> {
-    Some(knot_hash(input.trim()))
+    Some(to_hex(&knot_hash(input.trim())))
 }
 
 #[cfg(test)]
@@ -99,11 +95,18 @@ mod tests {
     use rstest::rstest;
 
     #[test]
-    fn test_hash() {
+    fn test_twist() {
         let lengths = vec![3, 4, 1, 5];
+        let mut current_pos = 0;
+        let mut skip_length = 0;
+        let result = twist(
+            &lengths,
+            (0..5).collect::<Vec<_>>(),
+            &mut current_pos,
+            &mut skip_length,
+        );
 
-        let result = hash(5, &lengths);
-        assert_eq!(result, 12);
+        assert_eq!(result, vec![3, 4, 2, 1, 0]);
     }
 
     #[rstest]
@@ -113,6 +116,6 @@ mod tests {
     #[case("1,2,4", "63960835bcdc130f0b66d7ff4f6a5a8e")]
     fn test_knot_hash(#[case] input: &str, #[case] expected: &str) {
         let result = knot_hash(input);
-        assert_eq!(result, String::from(expected));
+        assert_eq!(to_hex(&result), String::from(expected));
     }
 }
