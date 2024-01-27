@@ -4,14 +4,14 @@ use glam::IVec2;
 
 advent_of_code::solution!(11);
 
-fn axial_distance(a: &IVec2, b: &IVec2) -> u32 {
-    ((a.x - b.x).unsigned_abs()
-        + (a.x + a.y - b.x - b.y).unsigned_abs()
-        + (a.y - b.y).unsigned_abs())
+fn axial_distance(a: &IVec2, b: &IVec2) -> usize {
+    ((a.x - b.x).unsigned_abs() as usize
+        + (a.x + a.y - b.x - b.y).unsigned_abs() as usize
+        + (a.y - b.y).unsigned_abs() as usize)
         / 2
 }
 
-fn follow(path: &[&str]) -> Option<IVec2> {
+fn follow(path: &[&str]) -> Option<(usize, usize)> {
     let dirs = HashMap::from([
         ("n", IVec2::new(1, -1)),
         ("ne", IVec2::new(1, 0)),
@@ -22,29 +22,11 @@ fn follow(path: &[&str]) -> Option<IVec2> {
     ]);
 
     let mut current_position = IVec2::new(0, 0);
-
-    for step in path {
-        current_position += *dirs.get(step)?;
-    }
-
-    Some(current_position)
-}
-
-fn max_path_distance(path: &[&str]) -> Option<u32> {
-    let dirs = HashMap::from([
-        ("n", IVec2::new(1, -1)),
-        ("ne", IVec2::new(1, 0)),
-        ("se", IVec2::new(0, 1)),
-        ("s", IVec2::new(-1, 1)),
-        ("sw", IVec2::new(-1, 0)),
-        ("nw", IVec2::new(0, -1)),
-    ]);
-
     let mut max_distance = 0;
-    let mut current_position = IVec2::new(0, 0);
 
     for step in path {
         current_position += *dirs.get(step)?;
+
         let distance = axial_distance(&IVec2::new(0, 0), &current_position);
 
         if distance > max_distance {
@@ -52,21 +34,26 @@ fn max_path_distance(path: &[&str]) -> Option<u32> {
         }
     }
 
+    Some((
+        axial_distance(&IVec2::new(0, 0), &current_position),
+        max_distance,
+    ))
+}
+
+pub fn part_one(input: &str) -> Option<usize> {
+    let path: Vec<&str> = input.trim().split(',').collect();
+
+    let (end_distance, _) = follow(&path)?;
+
+    Some(end_distance)
+}
+
+pub fn part_two(input: &str) -> Option<usize> {
+    let path: Vec<&str> = input.trim().split(',').collect();
+
+    let (_, max_distance) = follow(&path)?;
+
     Some(max_distance)
-}
-
-pub fn part_one(input: &str) -> Option<u32> {
-    let path: Vec<&str> = input.trim().split(',').collect();
-
-    let end_position = follow(&path)?;
-
-    Some(axial_distance(&IVec2::new(0, 0), &end_position))
-}
-
-pub fn part_two(input: &str) -> Option<u32> {
-    let path: Vec<&str> = input.trim().split(',').collect();
-
-    max_path_distance(&path)
 }
 
 #[cfg(test)]
@@ -75,13 +62,13 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
-    #[case(vec!["ne","ne","ne"], IVec2::new(3, 0))]
-    #[case(vec!["ne","ne","sw","sw"], IVec2::new(0, 0))]
-    #[case(vec!["ne","ne","s","s"], IVec2::new(0, 2))]
-    #[case(vec!["se","sw","se","sw","sw"], IVec2::new(-3, 2))]
-    fn test_follow(#[case] input: Vec<&str>, #[case] expected: IVec2) {
-        let result = follow(&input);
-        assert_eq!(result, Some(expected));
+    #[case(vec!["ne","ne","ne"], 3)]
+    #[case(vec!["ne","ne","sw","sw"], 0)]
+    #[case(vec!["ne","ne","s","s"], 2)]
+    #[case(vec!["se","sw","se","sw","sw"], 3)]
+    fn test_follow(#[case] input: Vec<&str>, #[case] expected: usize) {
+        let (result, _) = follow(&input).unwrap();
+        assert_eq!(result, expected);
     }
 
     #[test]
