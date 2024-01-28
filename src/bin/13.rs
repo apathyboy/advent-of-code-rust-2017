@@ -36,13 +36,11 @@ pub fn part_one(input: &str) -> Option<usize> {
 pub fn part_two(input: &str) -> Option<usize> {
     let layers = parse(input);
 
-    (0..)
-        .filter(|delay| {
-            !layers
-                .iter()
-                .any(|layer| (delay + layer.depth).rem_euclid(2 * (layer.range - 1)) == 0)
-        })
-        .next()
+    (0..).find(|delay| {
+        !layers
+            .iter()
+            .any(|layer| (delay + layer.depth).rem_euclid(2 * (layer.range - 1)) == 0)
+    })
 }
 
 #[cfg(test)]

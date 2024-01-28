@@ -77,8 +77,8 @@ pub fn part_two(input: &str) -> Option<usize> {
     let mut regions: Vec<HashSet<IVec2>> = Vec::new();
 
     for pos in map.iter() {
-        if !regions.iter().any(|r| r.contains(&pos)) {
-            regions.push(find_region_members(&map, &pos));
+        if !regions.iter().any(|r| r.contains(pos)) {
+            regions.push(find_region_members(&map, pos));
         }
     }
 
