@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 advent_of_code::solution!(18);
 
@@ -36,11 +36,10 @@ impl Instruction {
             Argument::Value(value) => *value,
         };
 
-        computer.last_sound_frequency = Some(freq);
-
         computer.instruction_pointer += 1;
+        computer.send_counter += 1;
 
-        None
+        Some(freq)
     }
 
     fn set(&self, arg1: &Argument, arg2: &Argument, computer: &mut Duet) -> Option<i64> {
@@ -118,11 +117,27 @@ impl Instruction {
             Argument::Value(value) => *value,
         };
 
-        computer.instruction_pointer += 1;
+        computer.waiting = false;
 
-        if val != 0 {
-            computer.last_sound_frequency
+        if computer.is_v1 {
+            computer.instruction_pointer += 1;
+
+            if val != 0 && !computer.input_queue.is_empty() {
+                computer.input_queue.pop_front()
+            } else {
+                None
+            }
+        } else if !computer.input_queue.is_empty() {
+            computer.instruction_pointer += 1;
+            let received = computer.input_queue.pop_front();
+
+            if let Argument::Register(register) = arg1 {
+                *computer.registers.get_mut(register).unwrap() = received?;
+            }
+
+            received
         } else {
+            computer.waiting = true;
             None
         }
     }
@@ -163,7 +178,11 @@ struct Duet {
     instruction_pointer: i64,
     registers: HashMap<char, i64>,
     program: Vec<Instruction>,
-    last_sound_frequency: Option<i64>,
+    input_queue: VecDeque<i64>,
+    exited: bool,
+    send_counter: usize,
+    waiting: bool,
+    is_v1: bool,
 }
 
 impl Duet {
@@ -172,8 +191,33 @@ impl Duet {
             instruction_pointer: 0,
             registers,
             program,
-            last_sound_frequency: None,
+            input_queue: VecDeque::new(),
+            exited: false,
+            send_counter: 0,
+            waiting: false,
+            is_v1: false,
         }
+    }
+
+    fn run_next_instruction(&mut self) -> Option<i64> {
+        if self.instruction_pointer < 0 || self.instruction_pointer >= self.program.len() as i64 {
+            self.exited = true;
+            return None;
+        }
+
+        let instruction = self.program[self.instruction_pointer as usize].clone();
+
+        let output = instruction.execute(self);
+
+        if output.is_some() {
+            match instruction {
+                Instruction::Snd { arg1: _ } => return output,
+                Instruction::Rcv { arg1: _ } => return None,
+                _ => panic!("invalid instruction return"),
+            };
+        }
+
+        None
     }
 
     fn run(&mut self) -> Option<i64> {
@@ -188,7 +232,11 @@ impl Duet {
             let output = instruction.execute(self);
 
             if output.is_some() {
-                return output;
+                match instruction {
+                    Instruction::Snd { arg1: _ } => self.input_queue.push_front(output?),
+                    Instruction::Rcv { arg1: _ } => return output,
+                    _ => panic!("invalid instruction return"),
+                };
             }
         }
 
@@ -281,12 +329,73 @@ pub fn part_one(input: &str) -> Option<i64> {
     ]);
     let program = input.lines().filter_map(parse_instruction).collect();
     let mut duet = Duet::new(registers, program);
+    duet.is_v1 = true;
 
     duet.run()
 }
 
-pub fn part_two(_input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<usize> {
+    let mut registers = HashMap::from([
+        ('a', 0),
+        ('b', 0),
+        ('c', 0),
+        ('d', 0),
+        ('e', 0),
+        ('f', 0),
+        ('g', 0),
+        ('h', 0),
+        ('i', 0),
+        ('j', 0),
+        ('k', 0),
+        ('l', 0),
+        ('m', 0),
+        ('n', 0),
+        ('o', 0),
+        ('p', 0),
+        ('q', 0),
+        ('r', 0),
+        ('s', 0),
+        ('t', 0),
+        ('u', 0),
+        ('v', 0),
+        ('w', 0),
+        ('x', 0),
+        ('y', 0),
+        ('z', 0),
+    ]);
+    let program: Vec<Instruction> = input.lines().filter_map(parse_instruction).collect();
+    let mut p0 = Duet::new(registers.clone(), program.clone());
+
+    *registers.get_mut(&'p').unwrap() = 1;
+
+    let mut p1 = Duet::new(registers.clone(), program.clone());
+
+    loop {
+        let mut output0: Option<i64> = None;
+        let mut output1: Option<i64> = None;
+
+        if !p0.exited {
+            output0 = p0.run_next_instruction();
+        }
+
+        if !p1.exited {
+            output1 = p1.run_next_instruction();
+        }
+
+        if (p0.exited && p1.exited) || (p0.waiting && p1.waiting) {
+            break;
+        }
+
+        if !p0.exited && output1.is_some() {
+            p0.input_queue.push_back(output1?);
+        }
+
+        if !p1.exited && output0.is_some() {
+            p1.input_queue.push_back(output0?);
+        }
+    }
+
+    Some(p1.send_counter)
 }
 
 #[cfg(test)]
@@ -301,7 +410,9 @@ mod tests {
 
     #[test]
     fn test_part_two() {
-        let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        let result = part_two(&advent_of_code::template::read_file_part(
+            "examples", DAY, 2,
+        ));
+        assert_eq!(result, Some(3));
     }
 }
