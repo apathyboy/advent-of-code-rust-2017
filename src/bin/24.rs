@@ -41,20 +41,18 @@ fn successors(
         component.b
     };
 
-    //println!("Pins: {pins}");
-
     let mut successors = Vec::new();
 
     for s in components.iter().filter(|c| c.a == pins || c.b == pins) {
         if !path.iter().any(|c| c.a == s.a && c.b == s.b) {
             let mut updated_path = path.clone();
-            let mut s = s.clone();
+            let mut s = *s;
 
             if s.b == pins {
                 s.flipped = true;
             }
 
-            updated_path.push(s.clone());
+            updated_path.push(s);
 
             successors.push((updated_path, s));
         }
@@ -64,17 +62,14 @@ fn successors(
 }
 
 fn find_valid_bridges(start: &Component, components: &[Component]) -> Vec<Vec<Component>> {
-    let mut start = start.clone();
+    let mut start = *start;
     start.flipped = start.b == 0;
-
-    //println!("Finding bridges for {:?}", start);
 
     let start: (Vec<Component>, Component) = (Vec::from([start]), start);
 
     dfs_reach(start, |c| successors(c, components))
         .filter(|c| !c.0.is_empty() && (c.0[0].a == 0 || c.0[0].b == 0))
         .map(|c| c.0)
-        //.inspect(|c| println!("{:?}", c))
         .collect::<Vec<_>>()
 }
 
