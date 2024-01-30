@@ -27,6 +27,8 @@ Solutions for [Advent of Code](https://adventofcode.com/) in [Rust](https://www.
 | [Day 16](https://adventofcode.com/2017/day/16) | ⭐ | ⭐ |
 | [Day 17](https://adventofcode.com/2017/day/17) | ⭐ | ⭐ |
 | [Day 18](https://adventofcode.com/2017/day/18) | ⭐ | ⭐ |
+| [Day 19](https://adventofcode.com/2017/day/19) | ⭐ | ⭐ |
+| [Day 20](https://adventofcode.com/2017/day/20) | ⭐ | ⭐ |
 <!--- advent_readme_stars table --->
 
 <!--- benchmarking table --->
@@ -52,8 +54,10 @@ Solutions for [Advent of Code](https://adventofcode.com/) in [Rust](https://www.
 | [Day 16](./src/bin/16.rs) | `854.0µs` | `11.6ms` |
 | [Day 17](./src/bin/17.rs) | `114.5µs` | `195.1ms` |
 | [Day 18](./src/bin/18.rs) | `20.5µs` | `1.8ms` |
+| [Day 19](./src/bin/19.rs) | `898.4µs` | `766.9µs` |
+| [Day 20](./src/bin/20.rs) | `338.3µs` | `12.1ms` |
 
-**Total: 2105.52ms**
+**Total: 2119.62ms**
 <!--- benchmarking table --->
 
 *Benchmarks performed on a 2021 M1 Macbook Pro, 16GB*
