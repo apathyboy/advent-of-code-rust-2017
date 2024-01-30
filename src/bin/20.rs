@@ -17,6 +17,11 @@ impl Particle {
             acceleration,
         }
     }
+
+    fn update(&mut self) {
+        self.velocity += self.acceleration;
+        self.position += self.velocity;
+    }
 }
 
 fn parse_ivec3(input: &str) -> Option<IVec3> {
@@ -42,8 +47,7 @@ fn tick(particles: Vec<Particle>) -> Vec<Particle> {
     let mut particles = particles;
 
     for particle in particles.iter_mut() {
-        particle.velocity += particle.acceleration;
-        particle.position += particle.velocity;
+        particle.update();
     }
 
     let mut retain = Vec::new();
